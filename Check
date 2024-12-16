@@ -1,0 +1,129 @@
+#include <stdio.h>
+
+#define MAX 15 // Maximum board size
+
+char board[MAX][MAX];     // To store area labels
+int N;                    // Board dimension
+int solution[MAX][MAX];   // Solution board to mark queens (1 for queen, 0 otherwise)
+char unique_areas[MAX * MAX]; // Array to store unique areas
+int area_count;           // Number of unique areas
+
+// Function prototypes
+void find_unique_areas(int row, int col, int seen[256]);
+void initialize_solution(int row, int col);
+int solve(int area_index);
+int place_queen_in_area(int row, int col, char current_area, int area_index);
+int can_place(int row, int col, int check_row, int check_col);
+void print_board();
+
+int main() {
+    // Input board size
+    printf("Enter board size (N): ");
+    scanf("%d", &N);
+
+    // Input areas
+    printf("Enter the board's area labels (NxN matrix):\n");
+    for (int i = 0; i < N; i++) { // Loop allowed for receiving input
+        for (int j = 0; j < N; j++) {
+            scanf(" %c", &board[i][j]);
+        }
+    }
+
+    // Find unique areas
+    int seen[256] = {0};
+    area_count = 0;
+    find_unique_areas(0, 0, seen);
+
+    // Initialize the solution board
+    initialize_solution(0, 0);
+
+    // Solve the problem
+    if (solve(0)) {
+        print_board(); // Print the solution
+    } else {
+        printf("No solution exists.\n");
+    }
+
+    return 0;
+}
+
+// Recursively find unique areas in the board
+void find_unique_areas(int row, int col, int seen[256]) {
+    if (row == N) return; // Base case: all rows processed
+    if (col == N) {
+        find_unique_areas(row + 1, 0, seen); // Move to the next row
+        return;
+    }
+
+    char area = board[row][col];
+    if (!seen[(int)area]) {
+        seen[(int)area] = 1;
+        unique_areas[area_count] = area;
+        area_count++;
+    }
+
+    find_unique_areas(row, col + 1, seen); // Move to the next column
+}
+
+// Recursively initialize the solution board to 0
+void initialize_solution(int row, int col) {
+    if (row == N) return; // Base case: all rows processed
+    if (col == N) {
+        initialize_solution(row + 1, 0); // Move to the next row
+        return;
+    }
+
+    solution[row][col] = 0;
+    initialize_solution(row, col + 1); // Move to the next column
+}
+
+// Recursive function to solve the problem
+int solve(int area_index) {
+    if (area_index == area_count) return 1; // Base case: all areas have a queen
+
+    char current_area = unique_areas[area_index];
+    return place_queen_in_area(0, 0, current_area, area_index);
+}
+
+// Recursive helper to place a queen in the current area
+int place_queen_in_area(int row, int col, char current_area, int area_index) {
+    if (row == N) return 0; // No valid placement in this area
+    if (col == N) return place_queen_in_area(row + 1, 0, current_area, area_index); // Move to the next row
+
+    if (board[row][col] == current_area && solution[row][col] == 0 && can_place(row, col, 0, 0)) {
+        solution[row][col] = 1; // Place queen
+        if (solve(area_index + 1)) return 1; // Move to the next area
+        solution[row][col] = 0; // Backtrack
+    }
+
+    return place_queen_in_area(row, col + 1, current_area, area_index); // Move to the next column
+}
+
+// Recursive function to check if placing a queen at (row, col) is valid
+int can_place(int row, int col, int check_row, int check_col) {
+    if (check_row == row && check_col == col) return 1; // Finished checking all constraints
+
+    if (check_row == N) return can_place(row, col, 0, check_col + 1); // Move to the next column
+    if (check_col == N) return 1; // All constraints satisfied
+
+    if (solution[check_row][check_col]) {
+        if (check_col == col) return 0;                      // Same column
+        if ((row - check_row) == (col - check_col) ||        // Same major diagonal
+            (row - check_row) == (check_col - col)) return 0; // Same minor diagonal
+    }
+
+    return can_place(row, col, check_row + 1, check_col); // Move to the next row
+}
+
+// Print the board with 'X' for queens and '*' for empty cells
+void print_board() {
+    for (int i = 0; i < N; i++) { // Loop allowed for output
+        for (int j = 0; j < N; j++) {
+            if (solution[i][j] == 1)
+                printf("X ");
+            else
+                printf("* ");
+        }
+        printf("\n");
+    }
+}
